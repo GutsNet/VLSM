@@ -3,6 +3,7 @@ from vlsm_table import VLSM
 import csv
 import json
 from tabulate import tabulate
+import re
 
 def parse_arguments():
     """Parse command line arguments."""
@@ -12,7 +13,7 @@ def parse_arguments():
     
     parser.add_argument(
         "-H", "--Hosts", 
-        help="List of hosts separated by commas (e.g., 120,2,23,8,23)", 
+        help="List of hosts separated by commas (e.g., 120,2,23,8,2x10)", 
         required=True
     )
     parser.add_argument(
@@ -32,6 +33,18 @@ def parse_arguments():
     )
     
     return parser.parse_args()
+
+def expand_hosts(hosts):
+    """Expand any 'NxM' expressions in the host list."""
+    expanded_hosts = []
+    for h in hosts.split(","):
+        if "x" in h:
+            # Extract the number and repetitions
+            number, repetitions = map(int, h.split("x"))
+            expanded_hosts.extend([number] * repetitions)
+        else:
+            expanded_hosts.append(int(h))
+    return expanded_hosts
 
 def export_to_txt(data, filename="vlsm_output.txt"):
     """Export data to plain text format using tabulate."""
@@ -67,8 +80,7 @@ def export_to_json(data, filename="vlsm_output.json"):
     with open(filename, "w") as jsonfile:
         json.dump([json_dict], jsonfile, indent=4)
     
-    print(f"Datos exportados a {filename}")
-
+    print(f"Data exported to {filename}")
 
 def main():
     """Main function to execute VLSM logic."""
@@ -79,8 +91,8 @@ def main():
         return
 
     try:
-        # Convert the list of hosts to integers
-        subnets = [int(h) for h in args.Hosts.split(",")]
+        # Expand the host list, supporting 'NxM' syntax
+        subnets = expand_hosts(args.Hosts)
 
         # Create VLSM instance and generate the table
         vl = VLSM(net_id=args.net_ID, subnets=subnets)
