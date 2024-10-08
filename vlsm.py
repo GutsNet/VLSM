@@ -35,7 +35,7 @@ def parse_arguments():
     
     return parser.parse_args()
 
-def expand_hosts(hosts):
+def expand_hosts(hosts: str) -> list:
     """Expand any 'NxM' expressions in the host list."""
     expanded_hosts = []
     for h in hosts.split(","):
@@ -47,14 +47,14 @@ def expand_hosts(hosts):
             expanded_hosts.append(int(h))
     return expanded_hosts
 
-def export_to_txt(data, filename="vlsm_output.txt"):
+def export_to_txt(data: dict, filename: str="vlsm_output.txt"):
     """Export data to plain text format using tabulate."""
     table = tabulate(data, headers="keys", tablefmt="plain")
     with open(filename, "w") as f:
         f.write(table)
     print(f"Data exported to {filename}")
 
-def export_to_csv(data, filename="vlsm_output.csv"):
+def export_to_csv(data: dict, filename: str="vlsm_output.csv"):
     """Export data to CSV format."""
     with open(filename, "w", newline="") as csvfile:
         writer = csv.writer(csvfile)
@@ -66,7 +66,7 @@ def export_to_csv(data, filename="vlsm_output.csv"):
         
     print(f"Data exported to {filename}")
 
-def export_to_json(data, filename="vlsm_output.json"):
+def export_to_json(data: dict, filename: str="vlsm_output.json"):
     """Export data to JSON format, creating a dictionary for each row."""
     headers = list(data.keys())
     rows = zip(*data.values())
@@ -83,7 +83,7 @@ def export_to_json(data, filename="vlsm_output.json"):
     
     print(f"Data exported to {filename}")
 
-def validate_ip(ip):
+def validate_ip(ip: str) -> bool:
     """Validate if the given string is a valid IPv4 address."""
     try:
         ipaddress.IPv4Address(ip)
