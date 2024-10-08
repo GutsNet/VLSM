@@ -1,4 +1,5 @@
 import argparse
+import ipaddress
 from vlsm_table import VLSM
 import csv
 import json
@@ -82,12 +83,25 @@ def export_to_json(data, filename="vlsm_output.json"):
     
     print(f"Data exported to {filename}")
 
+def validate_ip(ip):
+    """Validate if the given string is a valid IPv4 address."""
+    try:
+        ipaddress.IPv4Address(ip)
+        return True
+    except ipaddress.AddressValueError:
+        return False
+
 def main():
     """Main function to execute VLSM logic."""
     args = parse_arguments()
 
     if args.No_Table and not args.Format:
         print("[x] Error: --No-Table or -N can only be used when specifying an export format.")
+        return
+
+    # Validate the network ID
+    if not validate_ip(args.net_ID):
+        print("[x] Error: Invalid IP address format for network ID.")
         return
 
     try:
