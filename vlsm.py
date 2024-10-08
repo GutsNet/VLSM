@@ -4,7 +4,6 @@ from vlsm_table import VLSM
 import csv
 import json
 from tabulate import tabulate
-import re
 
 def parse_arguments():
     """Parse command line arguments."""
@@ -23,12 +22,16 @@ def parse_arguments():
         default="172.16.0.0"
     )
     parser.add_argument(
-        "-F", "--Format", 
+        "-f", "--format", 
         help="Export format: txt, csv, json", 
         choices=["txt", "csv", "json"]
     )
     parser.add_argument(
-        "-N", "--No-Table", 
+        "-o", "--output", 
+        help="Specify the output file name without extension (e.g., 'custom_name').",
+    )
+    parser.add_argument(
+        "-n", "--no-table", 
         action="store_true", 
         help="Hide the table in the standard output"
     )
@@ -40,23 +43,22 @@ def expand_hosts(hosts: str) -> list:
     expanded_hosts = []
     for h in hosts.split(","):
         if "x" in h:
-            # Extract the number and repetitions
             number, repetitions = map(int, h.split("x"))
             expanded_hosts.extend([number] * repetitions)
         else:
             expanded_hosts.append(int(h))
     return expanded_hosts
 
-def export_to_txt(data: dict, filename: str="vlsm_output.txt"):
+def export_to_txt(data: dict, filename: str):
     """Export data to plain text format using tabulate."""
     table = tabulate(data, headers="keys", tablefmt="plain")
-    with open(filename, "w") as f:
+    with open(f"{filename}.txt", "w") as f:
         f.write(table)
-    print(f"Data exported to {filename}")
+    print(f"Data exported to {filename}.txt")
 
-def export_to_csv(data: dict, filename: str="vlsm_output.csv"):
+def export_to_csv(data: dict, filename: str):
     """Export data to CSV format."""
-    with open(filename, "w", newline="") as csvfile:
+    with open(f"{filename}.csv", "w", newline="") as csvfile:
         writer = csv.writer(csvfile)
         headers = list(data.keys())
         writer.writerow(headers)
@@ -64,24 +66,22 @@ def export_to_csv(data: dict, filename: str="vlsm_output.csv"):
         rows = zip(*data.values())
         writer.writerows(rows)
         
-    print(f"Data exported to {filename}")
+    print(f"Data exported to {filename}.csv")
 
-def export_to_json(data: dict, filename: str="vlsm_output.json"):
+def export_to_json(data: dict, filename: str):
     """Export data to JSON format, creating a dictionary for each row."""
     headers = list(data.keys())
     rows = zip(*data.values())
     
     json_dict = {}
     for row in rows:
-        # Create a dictionary for each row
         row_dict = {headers[1:][i]: row[1:][i] for i in range(len(headers[1:]))}
         json_dict[row[0]] = row_dict
 
-    # Export JSON file
-    with open(filename, "w") as jsonfile:
+    with open(f"{filename}.json", "w") as jsonfile:
         json.dump([json_dict], jsonfile, indent=4)
     
-    print(f"Data exported to {filename}")
+    print(f"Data exported to {filename}.json")
 
 def validate_ip(ip: str) -> bool:
     """Validate if the given string is a valid IPv4 address."""
@@ -95,14 +95,18 @@ def main():
     """Main function to execute VLSM logic."""
     args = parse_arguments()
 
-    if args.No_Table and not args.Format:
-        print("[x] Error: --No-Table or -N can only be used when specifying an export format.")
+    if args.no_table and not (args.format or args.output):
+        print("[x] Error: --no-table or -n can only be used when specifying an export format or output file.")
         return
 
     # Validate the network ID
     if not validate_ip(args.net_ID):
         print("[x] Error: Invalid IP address format for network ID.")
         return
+
+    # Define the filename and the output format
+    output_filename = args.output if args.output else "vlsm_output"
+    output_format = args.format if args.format else "txt" if args.output else None
 
     try:
         # Expand the host list, supporting 'NxM' syntax
@@ -112,18 +116,18 @@ def main():
         vl = VLSM(net_id=args.net_ID, subnets=subnets)
         vlsm_data = vl.get_vlsm_dict()
 
-        # Show the table if no format is specified or if --No-Table is not set
-        if not args.Format or not args.No_Table:
+         # Show the table if no format is specified or if --No-Table is not set
+        if not args.no_table:
             vl.print_vlsm_table()
 
-        # Export if a format is specified
-        if args.Format:
-            if args.Format == "txt":
-                export_to_txt(vlsm_data)
-            elif args.Format == "csv":
-                export_to_csv(vlsm_data)
-            elif args.Format == "json":
-                export_to_json(vlsm_data)
+         # Export if a format is specified 
+        if output_format:
+            if output_format == "txt":
+                export_to_txt(vlsm_data, output_filename)
+            elif output_format == "csv":
+                export_to_csv(vlsm_data, output_filename)
+            elif output_format == "json":
+                export_to_json(vlsm_data, output_filename)
 
     except ValueError as ve:
         print(f"[x] Error in provided values: {ve}")
