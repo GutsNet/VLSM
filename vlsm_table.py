@@ -166,6 +166,4 @@ class VLSM:
         return vlsm_output
 
     def print_vlsm_table(self, table_format="fancy_grid") -> None:
-        print(tabulate(self.get_vlsm_formated_dict(), headers="keys", tablefmt=table_format))    
-        # print(tabulate(self.get_vlsm_dict(), headers="keys", tablefmt="rounded_outline"))
-        # print(tabulate(self.get_vlsm_dict(), headers="keys"))
+        print(tabulate(self.get_vlsm_formated_dict(), headers="keys", tablefmt=table_format))
