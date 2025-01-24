@@ -2,7 +2,6 @@ from copy import deepcopy
 from tabulate import tabulate
 
 class VLSM:
-    OCTET_VALUES = [sum([2**(i*-1) for i in range(-7, 1)][:i]) for i in range(9)]
 
     def __init__(self, net_id: str, subnets: list = [2]):
         self.__net_id = net_id
@@ -14,15 +13,16 @@ class VLSM:
         self.__first_ips = self.__set_first_ips(self.__network_ids)
         self.__broadcasts = self.__set_broadcasts(self.__network_ids)
         self.__last_ips = self.__set_last_ips(self.__broadcasts)
-        self.__willcard = self.__set_willcard(self.__decimal_masks)
+        self.__wildcard = self.__set_wildcard(self.__decimal_masks)
 
     @staticmethod
     def __precalculate_masks() -> dict:
+        OCTET_VALUES = [0, 128, 192, 224, 240, 248, 252, 254, 255]
         masks = {}
         for p in range(1, 33):
             mask = [255] * 4
             octet_index = (p - 1) // 8 + 1
-            mask[octet_index - 1] = VLSM.OCTET_VALUES[8 - ((octet_index * 8) - p)]
+            mask[octet_index - 1] = OCTET_VALUES[8 - ((octet_index * 8) - p)]
             mask[octet_index:] = [0] * (4 - octet_index)
             masks[p] = mask
         return masks
@@ -64,27 +64,18 @@ class VLSM:
 
     def __set_broadcasts(self, net_ids: list) -> list:
         def process_ip(ip: list) -> list:
-            ip.reverse()
-            for i, o in enumerate(ip):
-                if o != 0:
-                    z = i
-                    break  
-
-            ip[z] -= 1
-            for i, o in enumerate(ip):
-                if i == z:
+            for i in range(len(ip) - 1, -1, -1):
+                if ip[i] != 0:
+                    ip[i] -= 1
+                    ip[i + 1:] = [255] * (len(ip) - i - 1)
                     break
-                ip[i] = 255
-            ip.reverse()
-
             return ip
-            
         return [process_ip(deepcopy(i)) for i in net_ids[1:]]
 
     def __set_last_ips(self, broadcasts: list) -> list:
         return [b[:3] + [b[3] - 1] for b in broadcasts]
 
-    def __set_willcard(self, masks: list) -> list:
+    def __set_wildcard(self, masks: list) -> list:
         return [[255 - o for o in w] for w in masks]
 
     def get_hosts(self) -> tuple:
@@ -111,8 +102,8 @@ class VLSM:
     def get_last_ips(self) -> tuple:
         return tuple(self.__last_ips)
 
-    def get_willcard(self) -> tuple:
-        return tuple(self.__willcard)
+    def get_wildcard(self) -> tuple:
+        return tuple(self.__wildcard)
 
     def get_vlsm_dict(self) -> dict:
         def format_ips(ips: list) -> tuple:
@@ -128,12 +119,12 @@ class VLSM:
             "First Host" : format_ips(self.get_first_ips()),
             "Last Host" : format_ips(self.get_last_ips()),
             "Broadcast" : format_ips(self.get_broadcasts()),
-            "Willcard" : format_ips(self.get_willcard())
+            "Wildcard" : format_ips(self.get_wildcard())
         }
 
         return vlsm_output
 
-    def get_vlsm_formated_dict(self) -> dict:
+    def print_vlsm_table(self, table_format: str="fancy_grid") -> None:
         def format_ips(ips: list) -> tuple:
             return tuple([".".join(str(o) for o in p) for p in ips])
 
@@ -149,7 +140,6 @@ class VLSM:
 
         header = lambda s: '\033[3;32m' + s + '\033[0m'
 
-
         vlsm_output = {
             header("#") : rows(list(range(1, len(self.get_hosts())+1))),
             header("Hosts") : rows(self.get_hosts()),
@@ -160,10 +150,7 @@ class VLSM:
             header("First Host") : rows(format_ips(self.get_first_ips())),
             header("Last Host") : rows(format_ips(self.get_last_ips())),
             header("Broadcast") : rows(format_ips(self.get_broadcasts())),
-            header("Willcard") : rows(format_ips(self.get_willcard()) ) 
+            header("Wildcard") : rows(format_ips(self.get_wildcard()) ) 
         }
-
-        return vlsm_output
-
-    def print_vlsm_table(self, table_format="fancy_grid") -> None:
-        print(tabulate(self.get_vlsm_formated_dict(), headers="keys", tablefmt=table_format))
+    
+        print(tabulate(vlsm_output, headers="keys", tablefmt=table_format))    
