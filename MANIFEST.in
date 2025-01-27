@@ -1,0 +1,11 @@
+# MANIFEST.in
+
+# Include the README file (useful for PyPI)
+include README.md
+
+# Include the LICENSE file (useful for PyPI)
+include LICENSE
+
+# Include all Python files within the vlsm directory
+recursive-include vlsm *.py
+

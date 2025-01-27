@@ -1,6 +1,6 @@
 import argparse
 import ipaddress
-from vlsm_table import VLSM
+from .vlsm_table import VLSM
 import csv
 import json
 from tabulate import tabulate
