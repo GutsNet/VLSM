@@ -49,7 +49,6 @@ class VLSM:
         ids = [list(map(int, net_id.split('.')))]
         for i, p in enumerate(prefixes):
             octet_index = (p - 1) // 8
-            # print(f"({p} - 1) // 8 -> {p - 1} // 8 -> {octet_index}")
             new_id = ids[-1][:]
             add = new_id[octet_index] + 256 - int(masks[i][octet_index])
             if add > 255:
