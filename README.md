@@ -2,7 +2,7 @@
 
 ## Description
 
-This program is a tool for calculating subnets using **VLSM** (Variable Length Subnet Masking). It allows you to input a base network and a list of host requirements per subnet, generating subnet masks, network addresses, valid IP ranges, and more. It is ideal for network administrators and students who want to learn or work with IP subnetting.
+This program is a tool for calculating subnets using **VLSM** (Variable Length Subnet Masking). It allows you to input a base network and a list of host requirements per subnet, generating subnet masks, network addresses, valid IP ranges, and more. It is for students who want to learn or work with IP subnetting.
 
 ## Features
 
@@ -28,10 +28,12 @@ This program is a tool for calculating subnets using **VLSM** (Variable Length S
    cd VLSM
    ```
 2. Ensure you have Python 3.6 or higher installed.
-3. Install the required dependencies:
+3. Install the package using `setup.py`:
    ```bash
-   pip install -r requirements.txt
+   pip install .
    ```
+
+This will install the `vlsm` command-line tool and all its dependencies.
 
 ## Usage
 
@@ -51,27 +53,27 @@ The program is executed from the command line. Below are the available arguments
 
 1. **Basic calculation with screen output**:
    ```bash
-   python vlsm.py -H 120,15,8
+   vlsm -H 120,15,8
    ```
 
 2. **Specify a custom network ID**:
    ```bash
-   python vlsm.py -H 50,30 -ID 192.168.1.0
+   vlsm -H 50,30 -ID 192.168.1.0
    ```
 
 3. **Export results to a TXT file**:
    ```bash
-   python vlsm.py -H 100,50,25 -f txt -o subnets
+   vlsm -H 100,50,25 -f txt -o subnets
    ```
 
 4. **Export to JSON without displaying the table in the console**:
    ```bash
-   python vlsm.py -H 200,50,10 -f json -n
+   vlsm -H 200,50,10 -f json -n
    ```
 
 5. **Use `NxM` syntax for repeated host requirements**:
    ```bash
-   python vlsm.py -H 20x5,50
+   vlsm -H 20x5,50
    ```
    This command will generate 5 subnets with 20 hosts each and an additional subnet for 50 hosts. The `NxM` syntax is particularly useful when defining multiple subnets with the same number of required hosts. For example, `10x3` creates 3 subnets each capable of accommodating 10 hosts, saving time and simplifying input.
 
@@ -137,4 +139,3 @@ If you want to improve the program, please fork the repository and submit your c
 ## License
 
 This project is licensed under the [MIT License](LICENSE).
-
