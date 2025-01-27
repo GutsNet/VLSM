@@ -30,7 +30,11 @@ This program is a tool for calculating subnets using **VLSM** (Variable Length S
 2. Ensure you have Python 3.6 or higher installed.
 3. Install the package using `setup.py`:
    ```bash
+   # Windows
    pip install .
+
+   # Linux
+   sudo pip install .
    ```
 
 This will install the `vlsm` command-line tool and all its dependencies.
