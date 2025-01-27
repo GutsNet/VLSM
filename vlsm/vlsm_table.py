@@ -7,7 +7,7 @@ class VLSM:
         self.__net_id = net_id
         self.__subnets = subnets
         self.__masks = self.__precalculate_masks()
-        self.__hosts, self.__total_hosts, self.__prefixes = self.__set_hosts_and_prefix(self.__subnets)	
+        self.__hosts, self.__total_hosts, self.__prefixes = self.__set_hosts_and_prefix(self.__subnets)    
         self.__decimal_masks = self.__set_masks(self.__prefixes)
         self.__network_ids = self.__set_network_ids(self.__net_id, self.__prefixes, self.__decimal_masks)
         self.__first_ips = self.__set_first_ips(self.__network_ids)
@@ -47,20 +47,25 @@ class VLSM:
 
     def __set_network_ids(self, net_id: str, prefixes: list, masks: list) -> list:
         ids = [list(map(int, net_id.split('.')))]
-        for i, p in enumerate(prefixes):
-            octet_index = (p - 1) // 8
-            new_id = ids[-1][:]
+        
+        for i, prefix in enumerate(prefixes):
+            octet_index = (prefix - 1) // 8
+            new_id = ids[-1][:]  
             add = new_id[octet_index] + 256 - int(masks[i][octet_index])
-            if add > 255:
-                new_id[octet_index-1] += 1
-                if new_id[octet_index - 1] > 255:
-                    new_id[octet_index - 2] += 1 
-                    new_id[octet_index -1] = 0
-                new_id[octet_index] = 0
-            else:
-                new_id[octet_index] = add
+            
+            while add > 255:
+                new_id[octet_index] = add % 256
+                carry = add // 256
+                octet_index -= 1
+                if octet_index < 0:  # If carry exceeds the first octet
+                    raise ValueError("Overflow cannot propagate beyond the first octet")
+                add = new_id[octet_index] + carry
+            
+            new_id[octet_index] = add
             ids.append(new_id)
+        
         return ids
+
 
     def __set_first_ips(self, net_ids: list) -> list:
         return [i[:3] + [i[3] + 1] for i in net_ids]
@@ -113,7 +118,7 @@ class VLSM:
             return tuple([".".join(str(o) for o in p) for p in ips])
 
         vlsm_output = {
-        	"#" : list(range(1, len(self.get_hosts())+1)),
+            "#" : list(range(1, len(self.get_hosts())+1)),
             "Hosts" : self.get_hosts(),
             "Total Hosts" : self.get_total_hosts(),
             "Subnet" : format_ips(self.get_net_ids()),
@@ -133,7 +138,7 @@ class VLSM:
 
         def rows(row: list) -> tuple:
             out_row = []
-            for i, c in enumerate(row):
+            for i in range(len(row)):
                 if i % 2 == 0:
                     out_row.append('\033[37m' + f'{row[i]}' + '\033[0m')
                 else:
@@ -156,4 +161,4 @@ class VLSM:
             header("Wildcard") : rows(format_ips(self.get_wildcard()) ) 
         }
     
-        print(tabulate(vlsm_output, headers="keys", tablefmt=table_format))    
+        print(tabulate(vlsm_output, headers="keys", tablefmt=table_format))
