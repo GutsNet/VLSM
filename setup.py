@@ -14,7 +14,7 @@ setup(
     python_requires='>=3.6',
     entry_points={
         'console_scripts': [
-            'vlsm = vlsm.vlsm:main',  # Your command will be 'vlsm' and it will call the 'main' function in vlsm.py
+            'vlsm = vlsm.vlsm:main',  
         ],
     },
 )
