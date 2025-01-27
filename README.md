@@ -20,7 +20,7 @@ The VLSM Calculator is a Python program that calculates subnet masks and IP rang
 ## Installation
 1. Clone the repository:
     ```sh
-    git clone https://github.com/yourusername/vlsm-calculator.git
+    git clone https://github.com/GutsNet/VLSM.git
     ```
 2. Navigate to the project directory:
     ```sh
