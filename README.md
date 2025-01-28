@@ -13,12 +13,23 @@ This program is a tool for calculating subnets using **VLSM** (Variable Length S
   - Host Address Range
   - Broadcast Address
   - Wildcard
-- Supports exporting results to formats:
+- Supports exporting results to multiple formats:
   - **TXT**
   - **CSV**
   - **JSON**
+  - **HTML**
 - Allows defining a custom network ID.
 - Supports expressions like `NxM` to simplify repetitive subnet input.
+- **Reverse Subnet Lookup**: Analyze a given network and retrieve details such as:
+  - Network Address
+  - Broadcast Address
+  - Subnet Mask
+  - Host Range
+  - Total Hosts
+- **IPv4 Validation**: Validates provided IPv4 addresses, identifying invalid inputs or special-case addresses such as:
+  - Loopback (127.0.0.0/8)
+  - Link-local (169.254.0.0/16)
+  - Unspecified (0.0.0.0)
 
 ## Installation
 
@@ -45,13 +56,14 @@ The program is executed from the command line. Below are the available arguments
 
 ### Available Arguments
 
-| Argument         | Description                                                                                 | Required   | Default Value             |
-|-------------------|---------------------------------------------------------------------------------------------|------------|---------------------------|
-| `-H` or `--Hosts`| List of hosts separated by commas. Example: `120,2,23,8,2x10`.                              | **Yes**    | N/A                       |
-| `-ID` or `--net-ID`| Base network ID. Example: `192.168.1.0`.                                                  | No         | `172.16.0.0`              |
-| `-f` or `--format`| Output format: `txt`, `csv`, `json`.                                                      | No         | None                      |
-| `-o` or `--output`| Output file name (without extension).                                                     | No         | `vlsm_output`             |
-| `-n` or `--no-table`| Hides the table in the standard output.                                                  | No         | N/A                       |
+| Argument             | Description                                                                                 | Required   | Default Value             |
+|-----------------------|---------------------------------------------------------------------------------------------|------------|---------------------------|
+| `-H` or `--Hosts`    | List of hosts separated by commas. Example: `120,2,23,8,2x10`.                              | **Yes**    | N/A                       |
+| `-ID` or `--net-ID`  | Base network ID. Example: `192.168.1.0`.                                                   | No         | `172.16.0.0`              |
+| `-f` or `--format`   | Output format: `txt`, `csv`, `json`, `html`.                                               | No         | None                      |
+| `-o` or `--output`   | Output file name (without extension).                                                      | No         | `vlsm_output`             |
+| `-n` or `--no-table` | Hides the table in the standard output.                                                    | No         | N/A                       |
+| `-r` or `--reverse-lookup` | Perform reverse lookup for a given network in CIDR format (e.g., `192.168.10.0/24`). | No         | N/A                       |
 
 ### Examples of Use
 
@@ -79,7 +91,13 @@ The program is executed from the command line. Below are the available arguments
    ```bash
    vlsm -H 20x5,50
    ```
-   This command will generate 5 subnets with 20 hosts each and an additional subnet for 50 hosts. The `NxM` syntax is particularly useful when defining multiple subnets with the same number of required hosts. For example, `10x3` creates 3 subnets each capable of accommodating 10 hosts, saving time and simplifying input.
+   This command will generate 5 subnets with 20 hosts each and an additional subnet for 50 hosts. The NxM syntax is particularly useful when defining multiple subnets with the same number of required hosts. For example, 10x3 creates 3 subnets each capable of accommodating 10 hosts, saving time and simplifying input.
+
+6. **Perform a reverse lookup for a CIDR network**:
+   ```bash
+   vlsm -r 192.168.1.0/24
+   ```
+   This will output details such as the network address, broadcast address, host range, and subnet mask for the given network.
 
 ### Output
 
@@ -110,7 +128,7 @@ When the program is executed, it generates a table in the console with the follo
 
 ### Output Files
 
-Depending on the specified format, the results are exported to `txt`, `csv`, or `json` files. Example of a JSON file:
+Depending on the specified format, the results are exported to `txt`, `csv`, `json`, or `html` files. Example of a JSON file:
 
 ```json
 {
