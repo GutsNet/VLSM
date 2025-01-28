@@ -1,5 +1,6 @@
 from copy import deepcopy
 from tabulate import tabulate
+from termcolor import colored
 
 class VLSM:
 
@@ -140,13 +141,13 @@ class VLSM:
             out_row = []
             for i in range(len(row)):
                 if i % 2 == 0:
-                    out_row.append('\033[37m' + f'{row[i]}' + '\033[0m')
+                    out_row.append(colored(row[i], "white"))
                 else:
-                    out_row.append('\033[34m' + f'{row[i]}' + '\033[0m')
+                    out_row.append(colored(row[i], "blue"))
 
             return tuple(out_row)
 
-        header = lambda s: '\033[3;32m' + s + '\033[0m'
+        header = lambda text: colored(text, "green")
 
         vlsm_output = {
             header("#") : rows(list(range(1, len(self.get_hosts())+1))),
