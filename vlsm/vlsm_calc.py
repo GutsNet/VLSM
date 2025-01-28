@@ -1,6 +1,4 @@
 from copy import deepcopy
-from tabulate import tabulate
-from termcolor import colored
 
 class VLSM:
 
@@ -124,7 +122,7 @@ class VLSM:
             "Total Hosts" : self.get_total_hosts(),
             "Subnet" : format_ips(self.get_net_ids()),
             "Prefix" : [f"/{h}" for h in self.get_prefixes()],
-            "Mask" : format_ips(self.get_masks()),
+            "Mask" : format_ips(self.get_masks()),  
             "First Host" : format_ips(self.get_first_ips()),
             "Last Host" : format_ips(self.get_last_ips()),
             "Broadcast" : format_ips(self.get_broadcasts()),
@@ -132,34 +130,3 @@ class VLSM:
         }
 
         return vlsm_output
-
-    def print_vlsm_table(self, table_format: str="fancy_grid") -> None:
-        def format_ips(ips: list) -> tuple:
-            return tuple([".".join(str(o) for o in p) for p in ips])
-
-        def rows(row: list) -> tuple:
-            out_row = []
-            for i in range(len(row)):
-                if i % 2 == 0:
-                    out_row.append(colored(row[i], "white"))
-                else:
-                    out_row.append(colored(row[i], "blue"))
-
-            return tuple(out_row)
-
-        header = lambda text: colored(text, "green")
-
-        vlsm_output = {
-            header("#") : rows(list(range(1, len(self.get_hosts())+1))),
-            header("Hosts") : rows(self.get_hosts()),
-            header("Total Hosts") : rows(self.get_total_hosts()),
-            header("Subnet") : rows(format_ips(self.get_net_ids())),
-            header("Prefix") : rows([f"/{h}" for h in self.get_prefixes()]),
-            header("Mask") : rows(format_ips(self.get_masks())),
-            header("First Host") : rows(format_ips(self.get_first_ips())),
-            header("Last Host") : rows(format_ips(self.get_last_ips())),
-            header("Broadcast") : rows(format_ips(self.get_broadcasts())),
-            header("Wildcard") : rows(format_ips(self.get_wildcard()) ) 
-        }
-    
-        print(tabulate(vlsm_output, headers="keys", tablefmt=table_format))

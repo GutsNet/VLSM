@@ -1,6 +1,6 @@
 import argparse
 import ipaddress
-from .vlsm_table import VLSM
+from vlsm_calc import VLSM
 import csv
 import json
 from tabulate import tabulate
@@ -26,8 +26,7 @@ def parse_arguments():
     
     parser.add_argument(
         "-H", "--Hosts", 
-        help="List of hosts separated by commas (e.g., 120,2,23,8,2x10)", 
-        required=True
+        help="List of hosts separated by commas (e.g., 120,2,23,8,2x10)"
     )
     parser.add_argument(
         "-ID", "--net-ID", 
@@ -36,17 +35,21 @@ def parse_arguments():
     )
     parser.add_argument(
         "-f", "--format", 
-        help="Export format: txt, csv, json", 
-        choices=["txt", "csv", "json"]
+        help="Export format: txt, csv, json, html", 
+        choices=["txt", "csv", "json", "html"]
     )
     parser.add_argument(
         "-o", "--output", 
-        help="Specify the output file name without extension (e.g., 'custom_name').",
+        help="Specify the output file name without extension (e.g., 'custom_name')."
     )
     parser.add_argument(
         "-n", "--no-table", 
         action="store_true", 
         help="Hide the table in the standard output"
+    )
+    parser.add_argument(
+        "-r", "--reverse-lookup", 
+        help="Perform reverse VLSM lookup for a given network in CIDR format (e.g., 192.168.10.0/24)."
     )
     
     return parser.parse_args()
@@ -105,6 +108,71 @@ def export_to_json(data: dict, filename: str):
     
     print_message(f"Data exported to {filename}.json", "success")
 
+def export_to_html(data: dict, filename: str):
+    """Export data to HTML format."""
+    headers = list(data.keys())
+    rows = zip(*data.values())
+
+    # Build the HTML content
+    html_content = """<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VLSM Table</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        table { border-collapse: collapse; width: 100%; margin: 20px 0; }
+        table, th, td { border: 1px solid #ddd; }
+        th, td { padding: 8px; text-align: left; }
+        th { background-color: #f2f2f2; }
+    </style>
+</head>
+<body>
+    <h1>VLSM Calculation Results</h1>
+    <table>
+        <thead>
+            <tr>""" + "".join(f"<th>{header}</th>" for header in headers) + """</tr>
+        </thead>
+        <tbody>"""
+
+    # Add table rows
+    for row in rows:
+        html_content += "<tr>" + "".join(f"<td>{cell}</td>" for cell in row) + "</tr>"
+
+    html_content += """
+        </tbody>
+    </table>
+</body>
+</html>"""
+
+    # Write the HTML to a file
+    with open(f"{filename}.html", "w") as f:
+        f.write(html_content)
+    print_message(f"Data exported to {filename}.html", "success")
+
+def reverse_subnet_lookup(ip_with_prefix: str):
+    """Perform reverse subnet lookup for a given IP and prefix."""
+    try:
+        network = ipaddress.ip_network(ip_with_prefix, strict=False)
+        
+        print_message(f"Reverse Lookup Results for {ip_with_prefix}", "info")
+
+        # Crear los datos para la tabla
+        headers = ["Property", "Value"]
+        table_data = [
+            ["Network Address", network.network_address],
+            ["Broadcast Address", network.broadcast_address],
+            ["Subnet Mask", network.netmask],
+            ["Host Range", f"{network.network_address + 1} - {network.broadcast_address - 1}"],
+            ["Total Hosts", network.num_addresses - 2]
+        ]
+
+        # Imprimir la tabla
+        print(tabulate(table_data, headers=headers, tablefmt="grid"))
+    except ValueError:
+        print_message(f"Invalid input '{ip_with_prefix}'. Please provide in CIDR format (e.g., 192.168.1.10/24).", "error")
+
 def validate_ip(ip: str) -> bool:
     """Validate if the given string is a valid IPv4 address and explain reasons if invalid."""
     try:
@@ -130,13 +198,48 @@ def validate_ip(ip: str) -> bool:
         print_message(f"{ip} is not a valid IPv4 address. Please check the format (e.g., 192.168.1.1).", "error")
         return False
 
+def print_vlsm_table(vl_obj, table_format: str="fancy_grid") -> None:
+        def format_ips(ips: list) -> tuple:
+            return tuple([".".join(str(o) for o in p) for p in ips])
+
+        def rows(row: list) -> tuple:
+            out_row = []
+            for i in range(len(row)):
+                if i % 2 == 0:
+                    out_row.append(colored(row[i], "white"))
+                else:
+                    out_row.append(colored(row[i], "blue"))
+
+            return tuple(out_row)
+
+        header = lambda text: colored(text, "green")
+
+        vlsm_output = {
+            header("#") : rows(list(range(1, len(vl_obj.get_hosts())+1))),
+            header("Hosts") : rows(vl_obj.get_hosts()),
+            header("Total Hosts") : rows(vl_obj.get_total_hosts()),
+            header("Subnet") : rows(format_ips(vl_obj.get_net_ids())),
+            header("Prefix") : rows([f"/{h}" for h in vl_obj.get_prefixes()]),
+            header("Mask") : rows(format_ips(vl_obj.get_masks())),
+            header("First Host") : rows(format_ips(vl_obj.get_first_ips())),
+            header("Last Host") : rows(format_ips(vl_obj.get_last_ips())),
+            header("Broadcast") : rows(format_ips(vl_obj.get_broadcasts())),
+            header("Wildcard") : rows(format_ips(vl_obj.get_wildcard()) ) 
+        }
+    
+        print(tabulate(vlsm_output, headers="keys", tablefmt=table_format))
 
 def main():
     """Main function to execute VLSM logic."""
     args = parse_arguments()
 
-    if args.no_table and not (args.format or args.output):
-        print_message("'--no-table' or '-n' can only be used when specifying an export format or output file.", "error")
+    # Check for reverse lookup option
+    if args.reverse_lookup:
+        reverse_subnet_lookup(args.reverse_lookup)
+        return
+
+    if not args.Hosts:
+        print_message("Argument '-H/--Hosts' is required unless '-r/--reverse-lookup' is used.", "error")
         return
 
     # Validate the network ID
@@ -153,20 +256,22 @@ def main():
 
         # Create VLSM instance and generate the table
         vl = VLSM(net_id=args.net_ID, subnets=subnets)
-        vlsm_data = vl.get_vlsm_dict()
-
+        
         # Show the table if no format is specified or if --No-Table is not set
         if not args.no_table:
-            vl.print_vlsm_table()
+            print_vlsm_table(vl_obj=vl)
 
         # Export if a format is specified 
         if output_format:
             if output_format == "txt":
-                export_to_txt(vlsm_data, output_filename)
+                
+                export_to_txt(vl.get_vlsm_dict(), output_filename)
             elif output_format == "csv":
-                export_to_csv(vlsm_data, output_filename)
+                export_to_csv(vl.get_vlsm_dict(), output_filename)
             elif output_format == "json":
-                export_to_json(vlsm_data, output_filename)
+                export_to_json(vl.get_vlsm_dict(), output_filename)
+            elif output_format == "html":
+                export_to_html(vl.get_vlsm_dict(), output_filename)
 
     except ValueError as ve:
         print_message(f"Error in provided values: {ve}", "error")
