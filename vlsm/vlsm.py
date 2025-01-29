@@ -61,17 +61,24 @@ def expand_hosts(hosts: str) -> list:
         if "x" in h:
             try:
                 number, repetitions = map(int, h.split("x"))
+                if number <= 0 or repetitions <= 0:
+                    print_message(f"Host values must be greater than zero in '{h}'.", "error")
+                    raise ValueError
                 expanded_hosts.extend([number] * repetitions)
             except ValueError:
-                print_message(f"Invalid format in host range '{h}'. Use 'NxM' with integers.", "error")
+                print_message(f"Invalid format in host range '{h}'. Use 'NxM' with positive integers.", "error")
                 raise 
         else:
             try:
-                expanded_hosts.append(int(h))
+                host_value = int(h)
+                if host_value <= 0:
+                    print_message(f"Host value '{h}' must be greater than zero.", "error")
+                    raise ValueError
+                expanded_hosts.append(host_value)
             except ValueError:
                 print_message(f"Host '{h}' is not a valid number.", "error")
                 raise 
-
+            
     return expanded_hosts
 
 def export_to_txt(data: dict, filename: str):
@@ -150,7 +157,7 @@ def export_to_html(data: dict, filename: str):
     with open(f"{filename}.html", "w") as f:
         f.write(html_content)
     print_message(f"Data exported to {filename}.html", "success")
-
+    
 def reverse_subnet_lookup(ip_with_prefix: str):
     """Perform reverse subnet lookup for a given IP and prefix."""
     try:
@@ -274,7 +281,7 @@ def main():
                 export_to_html(vl.get_vlsm_dict(), output_filename)
 
     except ValueError as ve:
-        print_message(f"Error in provided values: {ve}", "error")
+        return
     except Exception as e:
         print_message(f"Unexpected error: {e}", "error")
 
