@@ -59,7 +59,7 @@ The program is executed from the command line. Below are the available arguments
 | Argument             | Description                                                                                 | Required   | Default Value             |
 |-----------------------|---------------------------------------------------------------------------------------------|------------|---------------------------|
 | `-H` or `--Hosts`    | List of hosts separated by commas. Example: `120,2,23,8,2x10`.                              | **Yes**    | N/A                       |
-| `-ID` or `--net-ID`  | Base network ID. Example: `192.168.1.0`.                                                   | No         | `172.16.0.0`              |
+| `-ID` or `--net-ID`  | Base network ID using CIDR notation. Example: `192.168.1.0/24`.                                                   | No         | `172.16.0.0/24`              |
 | `-f` or `--format`   | Output format: `txt`, `csv`, `json`, `html`.                                               | No         | None                      |
 | `-o` or `--output`   | Output file name (without extension).                                                      | No         | `vlsm_output`             |
 | `-n` or `--no-table` | Hides the table in the standard output.                                                    | No         | N/A                       |
@@ -74,7 +74,7 @@ The program is executed from the command line. Below are the available arguments
 
 2. **Specify a custom network ID**:
    ```bash
-   vlsm -H 50,30 -ID 192.168.1.0
+   vlsm -H 50,30 -ID 192.168.1.0/24
    ```
 
 3. **Export results to a TXT file**:
