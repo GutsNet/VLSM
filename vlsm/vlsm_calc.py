@@ -53,7 +53,6 @@ class VLSM:
         ids = [list(map(int, self.__net_id.split('.')))]
         
         for prefix in self.__prefixes:
-            print(prefix)
             octet_index = (prefix - 1) // 8
             new_id = ids[-1][:]
             
