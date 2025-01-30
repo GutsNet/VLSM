@@ -1,10 +1,11 @@
-import argparse
-import ipaddress
-from .vlsm_calc import VLSM
-import csv
-import json
 from tabulate import tabulate
 from termcolor import colored
+from .vlsm_calc import VLSM
+import argparse
+import ipaddress
+import re
+import csv
+import json
 
 def print_message(message, message_type="info"):
     """Prints a message with a colored signifier."""
@@ -30,8 +31,8 @@ def parse_arguments():
     )
     parser.add_argument(
         "-ID", "--net-ID", 
-        help="Network ID. Default ID: 172.16.0.0", 
-        default="172.16.0.0"
+        help="Network ID. Default ID: 172.16.0.0/24", 
+        default="172.16.0.0/24"
     )
     parser.add_argument(
         "-f", "--format", 
@@ -180,30 +181,50 @@ def reverse_subnet_lookup(ip_with_prefix: str):
     except ValueError:
         print_message(f"Invalid input '{ip_with_prefix}'. Please provide in CIDR format (e.g., 192.168.1.10/24).", "error")
 
-def validate_ip(ip: str) -> bool:
-    """Validate if the given string is a valid IPv4 address and explain reasons if invalid."""
+def validate_ip(net_id: str) -> bool:
+    """Validate if the given string is a valid IPv4 network and check additional restrictions."""
     try:
-        ip_addr = ipaddress.IPv4Address(ip)
+        # Try to create an IPv4 network object
+        network = ipaddress.IPv4Network(net_id, strict=False)
+        ip_addr = ipaddress.IPv4Address(net_id.split('/')[0])  # Extraer solo la dirección IP
 
-        # Check if the IP is loopback
+        # Validating the CIDR notation
+        cidr_pattern = r"^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}/\d{1,2}$"
+        if not re.match(cidr_pattern, net_id):
+            print_message(f"Invalid format: {net_id}. Please use CIDR notation (e.g., 192.168.1.0/24).", "error")
+            return False
+        
+        # Check if the network is a broadcast address
+        if ip_addr == network.broadcast_address:
+            print_message(f"{net_id} is the broadcast address of the network.", "error")
+            return False
+        
+        # Check if the network is a valid network address (not the broadcast address or invalid IP)
+        if ip_addr != network.network_address:
+            print_message(f"{net_id} is not a valid network address. Please provide a network address.", "error")
+            return False
+        
+        # Check if the network is a loopback address
         if ip_addr.is_loopback:
-            print_message(f"{ip} is a loopback address (127.0.0.0/8). Loopback addresses are reserved for local communication within a host.", "error")
+            print_message(f"{net_id} is a loopback address (127.0.0.0/8). Reserved for internal host communication.", "error")
             return False
 
-        # Check if the IP is link-local
+        # Check if the network is a link-local address  
         if ip_addr.is_link_local:
-            print_message(f"{ip} is a link-local address (169.254.0.0/16). Link-local addresses are used for auto-configuration and are not routable.", "error")
+            print_message(f"{net_id} is a link-local address (169.254.0.0/16). Used for auto-configuration and not routable.", "error")
             return False
 
-        # Check if the IP is unspecified
+        # Check if the network is a unspecified address
         if ip_addr.is_unspecified:
-            print_message(f"{ip} is the unspecified address (0.0.0.0). This address cannot be assigned to any device.", "error")
+            print_message(f"{net_id} is the unspecified address (0.0.0.0). This address cannot be assigned to any device.", "error")
             return False
 
         return True
-    except ipaddress.AddressValueError:
-        print_message(f"{ip} is not a valid IPv4 address. Please check the format (e.g., 192.168.1.1).", "error")
+
+    except ValueError:
+        print_message(f"{net_id} is not a valid IPv4 address or CIDR notation (e.g., 192.168.1.0/24).", "error")
         return False
+
 
 def print_vlsm_table(vl_obj, table_format: str="fancy_grid") -> None:
         def format_ips(ips: list) -> tuple:
@@ -262,7 +283,7 @@ def main():
         subnets = expand_hosts(args.Hosts)
 
         # Create VLSM instance and generate the table
-        vl = VLSM(net_id=args.net_ID, subnets=subnets)
+        vl = VLSM(net_id=args.net_ID.split('/')[0], subnets=subnets)
         
         # Show the table if no format is specified or if --No-Table is not set
         if not args.no_table:
