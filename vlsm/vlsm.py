@@ -1,6 +1,6 @@
 from tabulate import tabulate
 from termcolor import colored
-from .vlsm_calc import VLSM
+from vlsm_calc import VLSM
 import argparse
 import ipaddress
 import re
@@ -189,7 +189,8 @@ def validate_ip(net_id: str) -> bool:
         ip_addr = ipaddress.IPv4Address(net_id.split('/')[0])  # Extraer solo la dirección IP
 
         # Validating the CIDR notation
-        cidr_pattern = r"^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}/\d{1,2}$"
+        cidr_pattern = r"^\d{1,3}(\.\d{1,3}){3}/\d{1,2}$"
+        
         if not re.match(cidr_pattern, net_id):
             print_message(f"Invalid format: {net_id}. Please use CIDR notation (e.g., 192.168.1.0/24).", "error")
             return False
