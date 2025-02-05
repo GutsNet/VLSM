@@ -1,6 +1,6 @@
 from functools import lru_cache
-from copy import deepcopy
-import math 
+from copy import copy
+import math
 
 class VLSM:
 
@@ -16,7 +16,7 @@ class VLSM:
         self.__wildcard = self.__set_wildcard()
 
     @staticmethod
-    @lru_cache(None)
+    @lru_cache(maxsize=None)
     def __precalculate_masks() -> dict:
         masks = {}
         for p in range(1, 33):
@@ -27,7 +27,7 @@ class VLSM:
             if remaining_bits:
                 mask.append(256 - (1 << (8 - remaining_bits)))
             mask.extend([0] * (4 - len(mask)))
-            masks[p] = mask
+            masks[p] = tuple(mask)
         return masks
 
     def __set_hosts_and_prefix(self, subnets: list) -> tuple:
@@ -44,21 +44,22 @@ class VLSM:
             total_hosts.append(total_hosts_subnet)
             prefixes.append(prefix)
         
-        return hosts, total_hosts, prefixes
+        return tuple(hosts), tuple(total_hosts), tuple(prefixes)
 
-    def __set_masks(self) -> list:
-        return [self.__masks_list[p] for p in self.__prefixes]
+    @lru_cache(maxsize=None)
+    def __set_masks(self) -> tuple:
+        return tuple(self.__masks_list[p] for p in self.__prefixes)
 
-    def __set_network_ids(self) -> list:
-        ids = [list(map(int, self.__net_id.split('.')))]
+    @lru_cache(maxsize=None)
+    def __set_network_ids(self) -> tuple:
+        ids = [tuple(map(int, self.__net_id.split('.')))]
         
         for prefix in self.__prefixes:
             octet_index = (prefix - 1) // 8
-            new_id = ids[-1][:]
+            new_id = list(ids[-1])
             
             increment = 1 << (32 - prefix)
             add = new_id[octet_index] + (increment >> (8 * (3 - octet_index)))
-            # add = new_id[octet_index] + 256 - self.__masks[i][octet_index]
                         
             while add > 255:
                 new_id[octet_index] = add % 256
@@ -69,58 +70,62 @@ class VLSM:
                 add = new_id[octet_index] + carry
             
             new_id[octet_index] = add
-            ids.append(new_id)
+            ids.append(tuple(new_id))
         
-        return ids
+        return tuple(ids)
 
-    def __set_first_ips(self) -> list:
-        return [net_id[:3] + [net_id[3] + 1] for net_id in self.__network_ids]
+    @lru_cache(maxsize=None)
+    def __set_first_ips(self) -> tuple:
+        return tuple(net_id[:3] + (net_id[3] + 1,) for net_id in self.__network_ids)
 
-    def __set_broadcasts(self) -> list:
-        def process_ip(ip: list) -> list:
+    @lru_cache(maxsize=None)
+    def __set_broadcasts(self) -> tuple:
+        def process_ip(ip: list) -> tuple:
             for i in range(len(ip) - 1, -1, -1):
                 if ip[i] != 0:
                     ip[i] -= 1
                     ip[i + 1:] = [255] * (len(ip) - i - 1)
                     break
-            return ip
-        return [process_ip(deepcopy(net_id)) for net_id in self.__network_ids[1:]]
+            return tuple(ip)
+        return tuple(process_ip(list(net_id)) for net_id in self.__network_ids[1:])
 
-    def __set_last_ips(self) -> list:
-        return [ip[:3] + [ip[3] - 1] for ip in self.__broadcasts]
+    @lru_cache(maxsize=None)
+    def __set_last_ips(self) -> tuple:
+        return tuple(ip[:3] + (ip[3] - 1,) for ip in self.__broadcasts)
 
-    def __set_wildcard(self) -> list:
-        return [[255 - octet for octet in mask] for mask in self.__masks]
+    @lru_cache(maxsize=None)
+    def __set_wildcard(self) -> tuple:
+        return tuple(tuple(255 - octet for octet in mask) for mask in self.__masks)
 
     def get_hosts(self) -> tuple:
-        return tuple(self.__hosts)
+        return self.__hosts
 
     def get_total_hosts(self) -> tuple:
-        return tuple(self.__total_hosts)
+        return self.__total_hosts
 
     def get_prefixes(self) -> tuple:
-        return tuple(self.__prefixes)
+        return self.__prefixes
 
     def get_masks(self) -> tuple:
-        return tuple(self.__masks) 
+        return self.__masks 
 
     def get_net_ids(self) -> tuple:
-        return tuple(self.__network_ids[:-1])
+        return self.__network_ids[:-1]
 
     def get_first_ips(self) -> tuple:
-        return tuple(self.__first_ips[:-1])
+        return self.__first_ips[:-1]
 
     def get_broadcasts(self) -> tuple:
-        return tuple(self.__broadcasts)
+        return self.__broadcasts
 
     def get_last_ips(self) -> tuple:
-        return tuple(self.__last_ips)
+        return self.__last_ips
 
     def get_wildcard(self) -> tuple:
-        return tuple(self.__wildcard)
+        return self.__wildcard
 
     def get_vlsm_dict(self) -> dict:
-        def format_ips(ips: list) -> tuple:
+        def format_ips(ips: tuple) -> tuple:
             return tuple(".".join(map(str, ip)) for ip in ips)
 
         vlsm_output = {
